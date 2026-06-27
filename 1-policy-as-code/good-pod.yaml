@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: approved-nginx-pod
+spec:
+  containers:
+    - name: web
+      image: internal-registry.io/secure-nginx:latest # ⭕️ 許可されたレジストリ

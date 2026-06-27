@@ -1,0 +1,34 @@
+version: '3.8'
+
+services:
+  # 1. ログを吐き出すWebアプリ（NGINX）
+  nginx:
+    image: nginx:latest
+    ports:
+      - "8081:80"
+    volumes:
+      - nginx-logs:/var/log/nginx
+
+  # 2. ログを検知して転送する主役（Fluent Bit）
+  fluent-bit:
+    image: fluent/fluent-bit:latest
+    volumes:
+      - ./fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf
+      - nginx-logs:/var/log/nginx
+    depends_on:
+      - minio
+
+  # 3. ログをセキュアに保管する模擬クラウドストレージ（MinIO）
+  minio:
+    image: minio/minio:latest
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    command: server /data --console-address ":9001"
+
+volumes:
+  nginx-logs:
+
