@@ -1,7 +1,6 @@
 version: '3.8'
 
 services:
-  # 1. ログを吐き出すWebアプリ（NGINX）
   nginx:
     image: nginx:latest
     ports:
@@ -9,7 +8,6 @@ services:
     volumes:
       - nginx-logs:/var/log/nginx
 
-  # 2. ログを検知して転送する主役（Fluent Bit）
   fluent-bit:
     image: fluent/fluent-bit:latest
     volumes:
@@ -18,7 +16,6 @@ services:
     depends_on:
       - minio
 
-  # 3. ログをセキュアに保管する模擬クラウドストレージ（MinIO）
   minio:
     image: minio/minio:latest
     ports:
@@ -27,8 +24,8 @@ services:
     environment:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: minioadmin
+    # WORM（オブジェクトロック）環境をシミュレートするためにコンテナ起動オプションを最適化
     command: server /data --console-address ":9001"
 
 volumes:
   nginx-logs:
-

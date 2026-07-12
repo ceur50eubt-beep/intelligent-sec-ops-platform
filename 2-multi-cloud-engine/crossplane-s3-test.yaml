@@ -1,9 +1,12 @@
-apiVersion: s3.aws.upbound.io/v1beta1
-kind: Bucket
+apiVersion: corporate.io/v1alpha1
+kind: SecureBucket
 metadata:
-  name: shimoyama-intelligent-platform-bucket
+  name: client-intelligent-platform-storage
 spec:
-  forProvider:
+  parameters:
     region: ap-northeast-1
-  providerConfigRef:
-    name: default
+    enforceEncryption: true
+    publicAccessBlock: true
+  compositionRef:
+    # プラットフォーム側で定義されたCompositionにより、AWSならS3、GCPならGCSへ自動マッピングされる
+    name: secure-s3-bucket-provider
