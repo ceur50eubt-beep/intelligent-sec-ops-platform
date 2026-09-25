@@ -19,39 +19,24 @@ jobs:
         with:
           python-version: "3.10"
 
-      - name: Install Python Dependencies
+      - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip
           pip install pyyaml
 
       - name: Install OPA Engine
         run: |
-          curl -sLo /tmp/opa https://github.com/open-policy-agent/opa/releases/download/v0.68.0/opa_linux_amd64_static || true
-          if [ -s /tmp/opa ]; then
-            chmod +x /tmp/opa
-            sudo mv /tmp/opa /usr/local/bin/opa
-            opa version || true
+          curl -sL -o opa https://github.com/open-policy-agent/opa/releases/download/v0.68.0/opa_linux_amd64_static
+          chmod 755 opa
+          sudo mv opa /usr/local/bin/opa
+          opa version
+
+      - name: Check Rego Policies
+        run: |
+          if [ -d "1-policy-as-code" ]; then
+            opa check 1-policy-as-code/ || true
           fi
 
-      - name: Evaluate Rego Policies
+      - name: Validate Kubernetes Manifests
         run: |
-          if command -v opa >/dev/null 2>&1; then
-            if [ -d "1-policy-as-code" ]; then
-              opa check 1-policy-as-code/ || true
-            fi
-          fi
-
-      - name: Validate Kubernetes & YAML Schemas
-        run: |
-          python3 -c "
-import glob, yaml
-files = glob.glob('**/*.yaml', recursive=True) + glob.glob('**/*.yml', recursive=True)
-for f in files:
-    if '.github' in f: continue
-    try:
-        with open(f, 'r', encoding='utf-8') as stream:
-            list(yaml.safe_load_all(stream))
-    except Exception as e:
-        print(f'Checked {f}: {e}')
-print('Manifest and Policy validation passed successfully.')
-"
+          python -c "import glob, yaml; files = [f for f in glob.glob('**/*.yaml', recursive=True) + glob.glob('**/*.yml', recursive=True) if '.github' not in f]; [list(yaml.safe_load_all(open(f, encoding='utf-8'))) for f in files]; print(f'Successfully validated {len(files)} manifests.')"
