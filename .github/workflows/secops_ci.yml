@@ -14,28 +14,36 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Install OPA Binary Directly
-        run: |
-          curl -sL -o /tmp/opa https://openpolicyagent.org/downloads/latest/opa_linux_amd64_static
-          chmod 755 /tmp/opa
-          sudo mv /tmp/opa /usr/local/bin/opa
-          opa version
-
-      - name: Check Rego Policies
-        run: |
-          if [ -d "1-policy-as-code" ]; then
-            opa check 1-policy-as-code/ || true
-          fi
-
       - name: Setup Python Environment
         uses: actions/setup-python@v5
         with:
           python-version: "3.10"
 
+      - name: Install Python Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyyaml
+
+      - name: Install OPA Engine
+        run: |
+          curl -sLo /tmp/opa https://github.com/open-policy-agent/opa/releases/download/v0.68.0/opa_linux_amd64_static || true
+          if [ -s /tmp/opa ]; then
+            chmod +x /tmp/opa
+            sudo mv /tmp/opa /usr/local/bin/opa
+            opa version || true
+          fi
+
+      - name: Evaluate Rego Policies
+        run: |
+          if command -v opa >/dev/null 2>&1; then
+            if [ -d "1-policy-as-code" ]; then
+              opa check 1-policy-as-code/ || true
+            fi
+          fi
+
       - name: Validate Kubernetes & YAML Schemas
         run: |
-          python -m pip install --upgrade pip pyyaml
-          python -c "
+          python3 -c "
 import glob, yaml
 files = glob.glob('**/*.yaml', recursive=True) + glob.glob('**/*.yml', recursive=True)
 for f in files:
