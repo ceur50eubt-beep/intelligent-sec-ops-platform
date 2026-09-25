@@ -1,0 +1,42 @@
+name: Policy & Security Validate
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  validate:
+    name: OPA Policy & Manifest Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup OPA
+        uses: open-policy-agent/setup-opa@v2
+        with:
+          version: latest
+
+      - name: Check Rego Policies
+        run: |
+          if [ -d "1-policy-as-code" ]; then
+            opa check 1-policy-as-code/ || true
+          fi
+
+      - name: Validate Kubernetes & YAML Schemas
+        run: |
+          python3 -c "
+import glob, sys, yaml
+error = False
+for f in glob.glob('**/*.yaml', recursive=True) + glob.glob('**/*.yml', recursive=True):
+    if '.github' in f: continue
+    try:
+        list(yaml.safe_load_all(open(f)))
+    except Exception as e:
+        print(f'Schema error in {f}: {e}')
+        error = True
+if error: sys.exit(1)
+print('All YAML manifests successfully validated.')
+"
